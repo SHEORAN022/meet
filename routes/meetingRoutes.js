@@ -5,6 +5,7 @@ const auth = require("../middleware/authMiddleware");
 
 const {
   getMeetingChats,
+    clearMeetingChats,
 } = require("../controllers/chatController");
 const {
   createMeeting,
@@ -27,6 +28,7 @@ unmuteAll,
 
 getMeetingInfo,
 
+
 getWaitingParticipants,
 admitUser,
 rejectUser,
@@ -34,6 +36,10 @@ transferHost,
 startScreenShare,
 stopScreenShare,
 getScreenShareStatus,
+selfMute,
+  selfUnmute,
+  getMuteStatus,
+  getUnmuteStatus,
 } = require("../controllers/meetingController");
 
 // Create Meeting
@@ -89,6 +95,10 @@ router.post("/mute-all", auth, muteAll);
 router.post("/remove-user", auth, removeUser);
 
 router.post("/remove-all", auth, removeAll);
+router.post("/self-mute", auth, selfMute);
+router.post("/self-unmute", auth, selfUnmute);
+router.get("/mute-status/:roomId", auth, getMuteStatus);
+router.get("/unmute-status/:roomId", auth, getUnmuteStatus);
 router.get(
   "/info/:roomId",
   auth,
@@ -155,5 +165,6 @@ router.get(
   auth,
   getMeetingChats
 );
+router.delete("/chat/:roomId", auth, clearMeetingChats);
 router.get("/:roomId", auth, getMeetingByRoomId);
 module.exports = router;

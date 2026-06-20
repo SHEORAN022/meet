@@ -1294,3 +1294,387 @@ exports.getScreenShareStatus = async (req, res) => {
 
   }
 };
+
+
+// ─── Self Mute ─────────────────────────────────────────────
+exports.selfMute = async (req, res) => {
+  try {
+    const { roomId } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({
+        success: false,
+        message: "roomId required hai",
+      });
+    }
+
+    const meeting = await Meeting.findOne({ roomId });
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found",
+      });
+    }
+
+    if (meeting.status === "ended") {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting has ended",
+      });
+    }
+
+    const participant = await MeetingParticipant.findOne({
+      meetingId: meeting._id,
+      userId: req.user.id,
+      leftAt: null,
+      status: "approved",
+    });
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+        message: "Tum is meeting mein nahi ho",
+      });
+    }
+
+    participant.isMuted = true;
+    await participant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Tum mute ho gaye",
+      isMuted: true,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ─── Self Unmute ───────────────────────────────────────────
+exports.selfUnmute = async (req, res) => {
+  try {
+    const { roomId } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({
+        success: false,
+        message: "roomId required hai",
+      });
+    }
+
+    const meeting = await Meeting.findOne({ roomId });
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found",
+      });
+    }
+
+    if (meeting.status === "ended") {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting has ended",
+      });
+    }
+
+    const participant = await MeetingParticipant.findOne({
+      meetingId: meeting._id,
+      userId: req.user.id,
+      leftAt: null,
+      status: "approved",
+    });
+
+    if (!participant) {
+      return res.status(404).json({
+        success: false,
+        message: "Tum is meeting mein nahi ho",
+      });
+    }
+
+    participant.isMuted = false;
+    await participant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Tum unmute ho gaye",
+      isMuted: false,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ─── Get Mute Status ───────────────────────────────────────
+// Host → sab ka status milega
+// Participant → sirf apna status milega
+// exports.getMuteStatus = async (req, res) => {
+//   try {
+//     const { roomId } = req.params;
+
+//     const meeting = await Meeting.findOne({ roomId });
+
+//     if (!meeting) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Meeting not found",
+//       });
+//     }
+
+//     if (meeting.status === "ended") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Meeting has ended",
+//       });
+//     }
+
+//     const isHost = meeting.hostId.toString() === req.user.id;
+
+//     // ─── Host → Sab ka status ──────────────────────────────
+//     if (isHost) {
+//       const participants = await MeetingParticipant.find({
+//         meetingId: meeting._id,
+//         leftAt: null,
+//         status: "approved",
+//       }).populate("userId", "name email phone profilePhoto");
+
+//       const muteList = participants.map((p) => ({
+//         participantId: p._id,
+//         user: p.userId,
+//         isMuted: p.isMuted,
+//         joinedAt: p.joinedAt,
+//       }));
+
+//       return res.status(200).json({
+//         success: true,
+//         isHost: true,
+//         roomId: meeting.roomId,
+//         totalParticipants: muteList.length,
+//         mutedCount: muteList.filter((p) => p.isMuted).length,
+//         unmutedCount: muteList.filter((p) => !p.isMuted).length,
+//         participants: muteList,
+//       });
+//     }
+
+//     // ─── Participant → Sirf apna status ───────────────────
+//     const participant = await MeetingParticipant.findOne({
+//       meetingId: meeting._id,
+//       userId: req.user.id,
+//       leftAt: null,
+//       status: "approved",
+//     });
+
+//     if (!participant) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Tum is meeting mein nahi ho",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       isHost: false,
+//       roomId: meeting.roomId,
+//       isMuted: participant.isMuted,
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+// ─── Get Mute Status ───────────────────────────────────────
+// Host + Participant dono ko sab ka status milega
+exports.getMuteStatus = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const meeting = await Meeting.findOne({ roomId });
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found",
+      });
+    }
+
+    if (meeting.status === "ended") {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting has ended",
+      });
+    }
+
+    const participants = await MeetingParticipant.find({
+      meetingId: meeting._id,
+      leftAt: null,
+      status: "approved",
+    }).populate("userId", "name email phone profilePhoto");
+
+    const muteList = participants.map((p) => ({
+      participantId: p._id,
+      user: p.userId,
+      isMuted: p.isMuted,
+      isHost: meeting.hostId.toString() === p.userId._id.toString(),
+      joinedAt: p.joinedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      roomId: meeting.roomId,
+      totalParticipants: muteList.length,
+      mutedCount: muteList.filter((p) => p.isMuted).length,
+      unmutedCount: muteList.filter((p) => !p.isMuted).length,
+      participants: muteList,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+
+// exports.getUnmuteStatus = async (req, res) => {
+//   try {
+//     const { roomId } = req.params;
+
+//     const meeting = await Meeting.findOne({ roomId });
+
+//     if (!meeting) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Meeting not found",
+//       });
+//     }
+
+//     if (meeting.status === "ended") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Meeting has ended",
+//       });
+//     }
+
+//     const isHost = meeting.hostId.toString() === req.user.id;
+
+//     // ─── Host → Sab ka status ──────────────────────────────
+//     if (isHost) {
+//       const participants = await MeetingParticipant.find({
+//         meetingId: meeting._id,
+//         leftAt: null,
+//         status: "approved",
+//         isMuted: false,
+//       }).populate("userId", "name email phone profilePhoto");
+
+//       const unmuteList = participants.map((p) => ({
+//         participantId: p._id,
+//         user: p.userId,
+//         isMuted: p.isMuted,
+//         joinedAt: p.joinedAt,
+//       }));
+
+//       return res.status(200).json({
+//         success: true,
+//         isHost: true,
+//         roomId: meeting.roomId,
+//         totalUnmuted: unmuteList.length,
+//         participants: unmuteList,
+//       });
+//     }
+
+//     // ─── Participant → Sirf apna status ───────────────────
+//     const participant = await MeetingParticipant.findOne({
+//       meetingId: meeting._id,
+//       userId: req.user.id,
+//       leftAt: null,
+//       status: "approved",
+//     });
+
+//     if (!participant) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Tum is meeting mein nahi ho",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       isHost: false,
+//       roomId: meeting.roomId,
+//       isMuted: participant.isMuted,
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+// ─── Get Unmute Status ─────────────────────────────────────
+// Host + Participant dono ko sab ka status milega
+exports.getUnmuteStatus = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const meeting = await Meeting.findOne({ roomId });
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: "Meeting not found",
+      });
+    }
+
+    if (meeting.status === "ended") {
+      return res.status(400).json({
+        success: false,
+        message: "Meeting has ended",
+      });
+    }
+
+    const participants = await MeetingParticipant.find({
+      meetingId: meeting._id,
+      leftAt: null,
+      status: "approved",
+      isMuted: false,
+    }).populate("userId", "name email phone profilePhoto");
+
+    const unmuteList = participants.map((p) => ({
+      participantId: p._id,
+      user: p.userId,
+      isMuted: p.isMuted,
+      isHost: meeting.hostId.toString() === p.userId._id.toString(),
+      joinedAt: p.joinedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      roomId: meeting.roomId,
+      totalUnmuted: unmuteList.length,
+      participants: unmuteList,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
