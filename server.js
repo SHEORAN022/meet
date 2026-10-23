@@ -12,8 +12,7 @@ require(
 "./routes/adminAuthRoutes"
 );
 const meetingSocket = require("./socket/meetingSocket");
-const recordingRoutes = require("./routes/recordingRoutes");
-const scheduledMeetingRoutes = require("./routes/scheduledMeetingRoutes");
+
 const app = express();
 
 const server = http.createServer(app);
@@ -47,8 +46,6 @@ app.use(
 "/api/admin/auth",
 adminAuthRoutes
 );
-app.use("/api/recording", recordingRoutes);
-app.use("/api/scheduled-meeting", scheduledMeetingRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)

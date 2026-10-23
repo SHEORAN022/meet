@@ -12,11 +12,11 @@ require(
 const {
 
   adminRegister,
-  getDashboardStats, 
+
   adminLogin,
-getAllUsers,
+
   getAdminProfile,
- getAllMeetingsForAdmin, 
+
 } = require(
   "../controllers/adminAuthController"
 );
@@ -40,8 +40,6 @@ router.get(
   adminAuth,
   getAdminProfile
 );
-router.get("/users", adminAuth, getAllUsers);
-router.get("/stats", adminAuth, getDashboardStats);
-router.get("/meetings", adminAuth, getAllMeetingsForAdmin); 
+
 module.exports =
 router;
