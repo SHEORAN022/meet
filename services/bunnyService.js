@@ -1,149 +1,148 @@
-// // services/bunnyService.js
+// // const axios = require("axios");
+
+// // const getConfig = () => ({
+// //   zone: process.env.BUNNY_STORAGE_ZONE,
+// //   password: process.env.BUNNY_STORAGE_PASSWORD,
+// //   hostname: process.env.BUNNY_STORAGE_HOSTNAME,
+// //   cdn: process.env.BUNNY_CDN_URL,
+// // });
+
+ 
+// // exports.uploadFromUrl = async (sourceUrl, destPath) => {
+// //   const { zone, password, hostname, cdn } = getConfig();
+
+// //   const download = await axios.get(sourceUrl, {
+// //     responseType: "stream",
+// //     timeout: 0,
+// //   });
+
+// //   const uploadUrl = `https://${hostname}/${zone}/${destPath}`;
+
+// //   await axios.put(uploadUrl, download.data, {
+// //     headers: {
+// //       AccessKey: password,
+// //       "Content-Type": "application/octet-stream",
+// //     },
+// //     maxBodyLength: Infinity,
+// //     maxContentLength: Infinity,
+// //     timeout: 0,
+// //   });
+
+// //   return `${cdn.replace(/\/$/, "")}/${destPath}`;
+// // };
+
+// // exports.deleteFile = async (destPath) => {
+// //   const { zone, password, hostname } = getConfig();
+
+// //   await axios.delete(`https://${hostname}/${zone}/${destPath}`, {
+// //     headers: { AccessKey: password },
+// //   });
+// // };
+
+
 // const axios = require("axios");
-// const FormData = require("form-data");
 
-// const BUNNY_STORAGE_ZONE = process.env.BUNNY_STORAGE_ZONE;
-// const BUNNY_ACCESS_KEY = process.env.BUNNY_ACCESS_KEY;
-// const BUNNY_CDN_URL = process.env.BUNNY_CDN_URL;
-// const BUNNY_STORAGE_ENDPOINT = process.env.BUNNY_STORAGE_ENDPOINT;
+// const getConfig = () => ({
+//   zone: process.env.BUNNY_STORAGE_ZONE,
+//   password: process.env.BUNNY_STORAGE_PASSWORD,
+//   hostname: process.env.BUNNY_STORAGE_HOSTNAME,
+//   cdn: process.env.BUNNY_CDN_URL,
+// });
 
-// // ─── Upload File to Bunny ────────────────────────────────
-// exports.uploadToBunny = async (fileBuffer, fileName, mimeType) => {
+// /**
+//  * Kisi bhi readable stream (jaise express req) ko seedha Bunny Storage par PUT karta hai.
+//  * File server ki RAM ya disk me save nahi hoti.
+//  * Return: Bunny CDN link
+//  */
+// exports.uploadFromStream = async (stream, destPath, contentLength) => {
+//   const { zone, password, hostname, cdn } = getConfig();
+
+//   if (!zone || !password || !hostname || !cdn) {
+//     throw new Error("Bunny env variables missing");
+//   }
+
+//   const headers = {
+//     AccessKey: password,
+//     "Content-Type": "application/octet-stream",
+//   };
+//   if (contentLength) headers["Content-Length"] = contentLength;
+
+//   await axios.put(`https://${hostname}/${zone}/${destPath}`, stream, {
+//     headers,
+//     maxBodyLength: Infinity,
+//     maxContentLength: Infinity,
+//     timeout: 0,
+//   });
+
+//   return `${cdn.replace(/\/$/, "")}/${destPath}`;
+// };
+
+// /** Bunny se file delete. File pehle se na ho (404) to error nahi deta. */
+// exports.deleteFile = async (destPath) => {
+//   const { zone, password, hostname } = getConfig();
+
 //   try {
-//     const bunnyPath = `recordings/${fileName}`;
-//     const uploadUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
-
-//     const response = await axios.put(uploadUrl, fileBuffer, {
-//       headers: {
-//         AccessKey: BUNNY_ACCESS_KEY,
-//         "Content-Type": mimeType || "video/webm",
-//       },
-//       maxBodyLength: Infinity,
-//       maxContentLength: Infinity,
+//     await axios.delete(`https://${hostname}/${zone}/${destPath}`, {
+//       headers: { AccessKey: password },
 //     });
-
-//     if (response.status === 201) {
-//       return {
-//         success: true,
-//         cdnUrl: `${BUNNY_CDN_URL}/${bunnyPath}`,
-//         bunnyPath,
-//       };
-//     }
-
-//     throw new Error("Bunny upload failed");
 //   } catch (error) {
-//     console.log("BUNNY UPLOAD ERROR:", error.message);
-//     throw error;
+//     if (error.response?.status !== 404) throw error;
 //   }
 // };
 
-// // ─── Delete File from Bunny ──────────────────────────────
-// exports.deleteFromBunny = async (bunnyPath) => {
-//   try {
-//     const deleteUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
-
-//     await axios.delete(deleteUrl, {
-//       headers: {
-//         AccessKey: BUNNY_ACCESS_KEY,
-//       },
-//     });
-
-//     return { success: true };
-//   } catch (error) {
-//     console.log("BUNNY DELETE ERROR:", error.message);
-//     throw error;
-//   }
-// };
-
-// // ─── Get File from Bunny (download stream) ───────────────
-// exports.getFileStream = async (bunnyPath) => {
-//   try {
-//     const fileUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
-
-//     const response = await axios.get(fileUrl, {
-//       headers: {
-//         AccessKey: BUNNY_ACCESS_KEY,
-//       },
-//       responseType: "stream",
-//     });
-
-//     return response;
-//   } catch (error) {
-//     console.log("BUNNY GET FILE ERROR:", error.message);
-//     throw error;
-//   }
-// };
 
 const axios = require("axios");
 
-const BUNNY_STORAGE_ZONE = process.env.BUNNY_STORAGE_ZONE;
-const BUNNY_ACCESS_KEY = process.env.BUNNY_ACCESS_KEY;
-const BUNNY_CDN_URL = process.env.BUNNY_CDN_URL;
-const BUNNY_STORAGE_ENDPOINT = process.env.BUNNY_STORAGE_ENDPOINT;
+const getConfig = () => ({
+  zone: process.env.BUNNY_STORAGE_ZONE,
+  password: process.env.BUNNY_STORAGE_PASSWORD,
+  hostname: process.env.BUNNY_STORAGE_HOSTNAME,
+  cdn: process.env.BUNNY_CDN_URL,
+});
 
-// ─── Upload File to Bunny ────────────────────────────────
-exports.uploadToBunny = async (fileBuffer, fileName, mimeType, folder = "recordings") => {
-  try {
-    const bunnyPath = `${folder}/${fileName}`;
-    const uploadUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
+/**
+ * Kisi bhi readable stream (jaise express req) ko seedha Bunny Storage par PUT karta hai.
+ * File server ki RAM ya disk me save nahi hoti.
+ * contentType: audio/webm, audio/mp4 etc. (sahi type se browser audio seedha play karta hai)
+ * Return: Bunny CDN link
+ */
+exports.uploadFromStream = async (
+  stream,
+  destPath,
+  contentLength,
+  contentType = "application/octet-stream"
+) => {
+  const { zone, password, hostname, cdn } = getConfig();
 
-    const response = await axios.put(uploadUrl, fileBuffer, {
-      headers: {
-        AccessKey: BUNNY_ACCESS_KEY,
-        "Content-Type": mimeType || "application/octet-stream",
-      },
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-    });
-
-    if (response.status === 201) {
-      return {
-        success: true,
-        cdnUrl: `${BUNNY_CDN_URL}/${bunnyPath}`,
-        bunnyPath,
-      };
-    }
-
-    throw new Error("Bunny upload failed");
-  } catch (error) {
-    console.log("BUNNY UPLOAD ERROR:", error.message);
-    throw error;
+  if (!zone || !password || !hostname || !cdn) {
+    throw new Error("Bunny env variables missing");
   }
+
+  const headers = {
+    AccessKey: password,
+    "Content-Type": contentType,
+  };
+  if (contentLength) headers["Content-Length"] = contentLength;
+
+  await axios.put(`https://${hostname}/${zone}/${destPath}`, stream, {
+    headers,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    timeout: 0,
+  });
+
+  return `${cdn.replace(/\/$/, "")}/${destPath}`;
 };
 
-// ─── Delete File from Bunny ──────────────────────────────
-exports.deleteFromBunny = async (bunnyPath) => {
+/** Bunny se file delete. File pehle se na ho (404) to error nahi deta. */
+exports.deleteFile = async (destPath) => {
+  const { zone, password, hostname } = getConfig();
+
   try {
-    const deleteUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
-
-    await axios.delete(deleteUrl, {
-      headers: {
-        AccessKey: BUNNY_ACCESS_KEY,
-      },
+    await axios.delete(`https://${hostname}/${zone}/${destPath}`, {
+      headers: { AccessKey: password },
     });
-
-    return { success: true };
   } catch (error) {
-    console.log("BUNNY DELETE ERROR:", error.message);
-    throw error;
-  }
-};
-
-// ─── Get File from Bunny (download stream) ───────────────
-exports.getFileStream = async (bunnyPath) => {
-  try {
-    const fileUrl = `${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
-
-    const response = await axios.get(fileUrl, {
-      headers: {
-        AccessKey: BUNNY_ACCESS_KEY,
-      },
-      responseType: "stream",
-    });
-
-    return response;
-  } catch (error) {
-    console.log("BUNNY GET FILE ERROR:", error.message);
-    throw error;
+    if (error.response?.status !== 404) throw error;
   }
 };

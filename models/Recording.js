@@ -1,5 +1,16 @@
-// models/Recording.js
 const mongoose = require("mongoose");
+
+const fileSchema = new mongoose.Schema(
+  {
+    part: { type: Number, default: 1 }, // pause/resume par recording kai parts me hoti hai
+    fileName: String,
+    bunnyPath: String,
+    url: String, // Bunny CDN link
+    size: Number, // bytes
+    duration: Number, // seconds
+  },
+  { _id: false }
+);
 
 const recordingSchema = new mongoose.Schema(
   {
@@ -7,63 +18,37 @@ const recordingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Meeting",
       required: true,
+      index: true,
     },
 
-    roomId: {
-      type: String,
-      required: true,
-    },
+    roomId: { type: String, required: true, index: true },
 
-    uploadedBy: {
+    startedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
-    fileName: {
-      type: String,
-      required: true,
-    },
-
-    originalName: {
-      type: String,
-      required: true,
-    },
-
-    fileSize: {
-      type: Number,
-      required: true,
-    },
-
-    duration: {
-      type: Number,
-      default: 0,
-    },
-
-    mimeType: {
-      type: String,
-      default: "video/webm",
-    },
-
-    cdnUrl: {
-      type: String,
-      default: "", // ✅ required nahi — pehle empty rahega
-    },
-
-    bunnyPath: {
-      type: String,
-      default: "", // ✅ required nahi — pehle empty rahega
-    },
-
+    // recording  = chal rahi hai
+    // paused     = pause hai
+    // processing = stop ho gayi, file upload hona baaki hai
+    // uploaded   = Bunny par save ho gayi
+    // failed     = upload fail hua
     status: {
       type: String,
-      enum: ["uploading", "ready", "failed", "deleted"],
-      default: "uploading",
+      enum: ["recording", "paused", "processing", "uploaded", "failed"],
+      default: "recording",
     },
+
+    startedAt: { type: Date, default: Date.now },
+    stoppedAt: { type: Date, default: null },
+
+    files: [fileSchema],
+
+    error: { type: String, default: null },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Recording", recordingSchema);
