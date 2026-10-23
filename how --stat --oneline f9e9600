@@ -1,0 +1,26 @@
+[33m364d0ea[m Backend code upload
+ controllers/adminAuthController.js        | 348 [32m++++++++++++++++++++++++[m
+ controllers/authController.js             | 390 [32m++++++++++++++++++++++++++[m[31m-[m
+ controllers/chatController.js             |  70 [32m++++[m[31m-[m
+ controllers/meetingController.js          | 384 [32m+++++++++++++++++++++++++++[m
+ controllers/recordingController.js        | 340 [32m++++++++++++++++++++++++[m
+ controllers/scheduledMeetingController.js | 425 [32m++++++++++++++++++++++++++++++[m
+ middleware/adminAuth.js                   |  49 [32m++++[m
+ middleware/imageUploadMiddleware.js       |  28 [32m++[m
+ middleware/uploadMiddleware.js            |  30 [32m+++[m
+ models/Admin.js                           |  49 [32m++++[m
+ models/Meeting.js                         |  36 [31m---[m
+ models/Recording.js                       |  69 [32m+++++[m
+ models/ScheduledMeeting.js                |  78 [32m++++++[m
+ models/User.js                            |  44 [32m++++[m
+ package-lock.json                         | 281 [32m++++++++++++++++++++[m
+ package.json                              |   3 [32m+[m
+ routes/adminAuthRoutes.js                 |  47 [32m++++[m
+ routes/authRoutes.js                      |  31 [32m+++[m
+ routes/meetingRoutes.js                   |  11 [32m+[m
+ routes/recordingRoutes.js                 |  33 [32m+++[m
+ routes/scheduledMeetingRoutes.js          |  38 [32m+++[m
+ server.js                                 |  61 [32m+[m[31m----[m
+ services/bunnyService.js                  | 149 [32m+++++++++++[m
+ socket/meetingSocket.js                   | 225 [32m+++++++++++[m[31m-----[m
+ 24 files changed, 3062 insertions(+), 157 deletions(-)
