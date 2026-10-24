@@ -1,18 +1,15 @@
-
 const axios = require("axios");
 
 const getConfig = () => {
-  const endpoint =
-    process.env.BUNNY_STORAGE_ENDPOINT ||
-    "https://storage.bunnycdn.com";
+  const endpoint = (
+    process.env.BUNNY_STORAGE_ENDPOINT || "https://storage.bunnycdn.com"
+  ).trim();
 
   return {
-    zone: process.env.BUNNY_STORAGE_ZONE,
-    password: process.env.BUNNY_ACCESS_KEY,
-    hostname: endpoint
-      .replace(/^https?:\/\//, "")
-      .replace(/\/+$/, ""),
-    cdn: process.env.BUNNY_CDN_URL,
+    zone: process.env.BUNNY_STORAGE_ZONE?.trim(),
+    password: process.env.BUNNY_ACCESS_KEY?.trim(),
+    hostname: endpoint.replace(/^https?:\/\//, "").replace(/\/+$/, ""),
+    cdn: process.env.BUNNY_CDN_URL?.trim(),
   };
 };
 
@@ -36,10 +33,32 @@ const validateConfig = ({ zone, password, hostname, cdn }) => {
   if (!cdn) missing.push("BUNNY_CDN_URL");
 
   if (missing.length) {
-    throw new Error(
-      `Bunny env variables missing: ${missing.join(", ")}`
-    );
+    throw new Error(`Bunny env variables missing: ${missing.join(", ")}`);
   }
+};
+
+// Bunny ke error ko readable Error me badalta hai
+const toBunnyError = (action, err) => {
+  const status = err.response?.status;
+  const data = err.response?.data;
+  const detail =
+    (data && typeof data === "object" && data.Message) ||
+    (typeof data === "string" && data) ||
+    err.message;
+
+  let hint = "";
+  if (status === 401) {
+    hint =
+      " | AccessKey galat hai: Storage Zone ka Password use karo (Account API key nahi), aur endpoint region sahi rakho.";
+  } else if (status === 404) {
+    hint = " | Storage zone name ya endpoint galat ho sakta hai.";
+  }
+
+  const e = new Error(
+    `Bunny ${action} failed (${status || "no response"}): ${detail}${hint}`
+  );
+  e.status = status;
+  return e;
 };
 
 /**
@@ -70,16 +89,16 @@ exports.uploadFromStream = async (
     headers["Content-Length"] = contentLength;
   }
 
-  await axios.put(
-    getUploadUrl(hostname, zone, destPath),
-    stream,
-    {
+  try {
+    await axios.put(getUploadUrl(hostname, zone, destPath), stream, {
       headers,
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
       timeout: 0,
-    }
-  );
+    });
+  } catch (err) {
+    throw toBunnyError("upload", err);
+  }
 
   return `${cdn.replace(/\/+$/, "")}/${encodePath(
     destPath.replace(/^\/+/, "")
@@ -100,13 +119,11 @@ exports.deleteFile = async (destPath) => {
 
   try {
     await axios.delete(url, {
-      headers: {
-        AccessKey: password,
-      },
+      headers: { AccessKey: password },
     });
   } catch (error) {
     if (error.response?.status !== 404) {
-      throw error;
+      throw toBunnyError("delete", error);
     }
   }
 };
